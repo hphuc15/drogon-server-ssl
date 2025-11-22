@@ -17,20 +17,6 @@ namespace api
             return;
         }
 
-        /* debug: Check datatype of value
-        if (!(*jsonStr)["sensor_id"].isInt() || !(*jsonStr)["float"].isNumeric())
-        {
-            Json::Value status;
-            status["Error"] = "sensor_id must be interger and light must be number";
-            HttpResponsePtr resp = HttpResponse::newHttpJsonResponse(status);
-            callback(resp);
-            return;
-        }
-        */
-
-        // LOG_INFO << "Received JSON: " << jsonStr->toStyledString(); //debug
-
-        // std::cout << "POST JSON: " << jsonStr << std::endl; // debug: check JSON ESP32 gửi
 
         int sensor_id = (*jsonStr)["sensor_id"].asInt();
         float light = (*jsonStr)["light"].asFloat();
@@ -74,13 +60,98 @@ namespace api
         // Get Database client
         auto client = drogon::app().getDbClient("default");
 
-        // Queries execute
-        std::string SQL_select = "SELECT sensor_id, date, time, light FROM bh1750 ORDER BY date DESC, time DESC LIMIT 10"; // Lấy 10 giá trị mới nhất
+        // Get data filter parameters
+        DataFilter_t s_DataFilter = {
+            .sensor_id = req->getParameter("sensor_id"),
+            .date = req->getParameter("date"),
+            .sort = {req->getParameter("sort")},
+            .level = req->getParameter("level")};
+        s_DataFilter.to_valid_sort(); // Delete null string in sort
+
+        // Create query string
+        std::string SQL_str = "SELECT sensor_id, date, time, light FROM bh1750 WHERE 1=1";
+
+        // Check filter parameter
+        if (s_DataFilter.is_datafilter_empty())
+        {
+            SQL_str.append(" ORDER BY date DESC, time DESC LIMIT 30;");
+        }
+        else
+        {
+            /*
+            - Filtering by sensor_id
+            - Filtering by date
+            - Filtering by light intensity level (low, medium, high)
+            - Sort by date DESC, time DESC (default)
+            - Sort by light DESC, ASC
+            */
+
+            // ============ DATA FILTER BLOCK ==============
+            // Search
+            if (!s_DataFilter.sensor_id.empty() || !s_DataFilter.date.empty())
+            {
+                std::string SQL_search;
+
+                // Sensor ID filter
+                if (!s_DataFilter.sensor_id.empty())
+                {
+                    SQL_search.append(" AND sensor_id = ");
+                    SQL_search.append(s_DataFilter.sensor_id);
+                }
+
+                // Date filter
+                if (!s_DataFilter.date.empty())
+                {
+                    SQL_search.append(" AND date = \"");
+                    SQL_search.append(s_DataFilter.date);
+                    SQL_search.append("\"");
+                }
+
+                // Light level filter
+                if (s_DataFilter.level == "low") // [0, 1000)
+                {
+                    SQL_search.append(" AND light >= 0 AND light < 1000");
+                }
+                else if (s_DataFilter.level == "medium") // [1000, 10000)
+                {
+                    SQL_search.append(" AND light >= 1000 AND light < 10000");
+                }
+                else if (s_DataFilter.level == "high") // [10000, max)
+                {
+                    SQL_search.append(" AND light >= 10000");
+                }
+
+                SQL_str.append(SQL_search);
+            }
+            // Sort
+            if (!s_DataFilter.sort.empty())
+            {
+                int s_comma_count = s_DataFilter.sort.size() - 1;
+                std::string SQL_sort = " ORDER BY";
+                for (auto param : s_DataFilter.sort)
+                {
+                    SQL_sort.append(" ");
+                    SQL_sort.append(param);
+                    SQL_sort.append(" DESC");
+                    while (s_comma_count != 0)
+                    {
+                        SQL_sort.append(",");
+                        s_comma_count--;
+                    }
+                }
+                SQL_str.append(SQL_sort);
+            }
+            SQL_str.append(" LIMIT 30;");
+        }
+
+
+
+        // ============== Execute ==================
         client->execSqlAsync(
-            SQL_select,
+            SQL_str,
             [=](const drogon::orm::Result &result)
             {
-                std::cout << result.size() << " rows selected" << std::endl; // Log trạng thái đã nhận GET request
+                std::cout << result.size() << " rows selected" << std::endl;
 
                 std::vector<std::map<std::string, std::string>> dataList;
                 for (auto row : result)

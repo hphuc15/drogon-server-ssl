@@ -1,13 +1,14 @@
 #pragma once
 
 #include <drogon/HttpController.h>
+#include <drogon/HttpAppFramework.h>
 
 using namespace drogon;
 
 namespace api
 {
-class data : public drogon::HttpController<data>
-{
+  class data : public drogon::HttpController<data>
+  {
   public:
     METHOD_LIST_BEGIN
     // use METHOD_ADD to add your custom processing function here;
@@ -23,7 +24,28 @@ class data : public drogon::HttpController<data>
     // void get(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback, int p1, std::string p2);
     // void your_method_name(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback, double p1, int p2) const;
 
-    void postData(const HttpRequestPtr &req, std::function<void (const HttpResponsePtr &)> &&callback);
-    void getData(const HttpRequestPtr &req, std::function<void (const HttpResponsePtr &)> &&callback);
-};
+    struct DataFilter_t
+    {
+      std::string sensor_id;
+      std::string date;
+      std::vector<std::string> sort;
+      std::string level; // low, medium, high
+
+      void to_valid_sort()
+      {
+        sort.erase(
+            std::remove_if(sort.begin(), sort.end(), [](const std::string &s)
+                           { return s.empty(); }),
+            sort.end());
+      }
+
+      bool is_datafilter_empty()
+      {
+        return sensor_id.empty() && date.empty() && sort.empty() && level.empty();
+      }
+    };
+
+    void postData(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+    void getData(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+  };
 }

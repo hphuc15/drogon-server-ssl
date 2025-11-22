@@ -1,62 +1,489 @@
 <!DOCTYPE html>
 <html>
-    <%c++
-    auto data = @@.get<std::vector<std::map<std::string, std::string>>>("data");
+<%c++ auto data=@@.get<std::vector<std::map<std::string, std::string>>>("data");
     %>
-<head>
-    <meta charset="UTF-8">
-    <title>
-        Sensor Data
-    </title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
 
-        table {
-            border-collapse: collapse;
-            width: 80%;
-            margin: auto;
-        }
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            Sensor Data
+        </title>
+        <h1>Sensor Data</h1>
+    </head>
 
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 8px 12px;
-            text-align: center;
-        }
+    <body>
 
-        th {
-            background-color: #f2f2f2;
-        }
+        <div class="filter-container">
+            <div class="filter-row">
+                <!-- Test filter-->
+                <form action="/api/data/getData" method="get" target="_self">
+                    <div class="field">
+                        <label for="sensor_id">Sensor ID</label><br>
+                        <input type="number" id="sensor_id" name="sensor_id"><br>
+                    </div>
 
-        h1 {
-            text-align: center;
-        }
-    </style>
-</head>
+                    <div class="field">
+                        <label for="date">Date</label><br>
+                        <input type="date" id="date" name="date"><br>
+                    </div>
 
-<body>
-    <h1>Sensor Data</h1>
-    <table>
-        <tr>
-            <th>Sensor ID</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Light (lx)</th>
-        </tr>
-        <%c++ for(auto row : data){ %>
+                    <div class="field">
+                        <label for="level">Select Light Level</label><br>
+                        <select id="level" name="level">
+                            <option value="">All</option>
+                            <option value="low">Low (0 - 1000)</option>
+                            <option value="medium">Medium (1000 - 10000)</option>
+                            <option value="high">High (> 10000)</option>
+                        </select><br>
+                    </div>
+
+                    <div class="field">
+                        <label for="sort">Sort by</label><br>
+
+                        <select id="sort-display" multiple style="display: none;">
+                            <option value="date">Date</option>
+                            <option value="time">Time</option>
+                            <option value="light">Value</option>
+                        </select>
+
+                        <div class="custom-multiselect">
+                            <div class="selected-items" id="selected-sort-items">Select sort options</div>
+                            <div class="dropdown-options" id="sort-options">
+                                <label class="option-item">
+                                    Date<input type="checkbox" value="date">
+                                </label>
+                                <label class="option-item">
+                                    Time <input type="checkbox" value="time">
+                                </label>
+                                <label class="option-item">
+                                    Value<input type="checkbox" value="light">
+                                </label>
+                            </div>
+                        </div>
+                        <br><br>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" id="apply-button">Apply</button>
+                        <button type="button" id="reset-button">Reset</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <br>
+        <table id="sensor-table">
             <tr>
-                <td>{% row["sensor_id"] %}</td>
-                <td>{% row["date"] %}</td>
-                <td>{% row["time"] %}</td>
-                <td>{% row["light"] %}</td>
+                <th>Sensor ID</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Light (lx)</th>
             </tr>
-        <%c++ } %>
-    </table>
-</body>
-
-
+            <%c++ for(auto row : data){ %>
+                <tr>
+                    <td>{% row["sensor_id"] %}</td>
+                    <td>{% row["date"] %}</td>
+                    <td>{% row["time"] %}</td>
+                    <td>{% row["light"] %}</td>
+                </tr>
+                <%c++ } %>
+        </table>
+    </body>
 
 </html>
+
+
+
+
+
+<style>
+    body {
+        font-family: 'Consolas', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 20px;
+    }
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: auto;
+    }
+
+    th,
+    td {
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    h1 {
+        text-align: center;
+    }
+
+    /* Data Filter*/
+    .filter-container {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border: 1px solid #ccc;
+        border-collapse: collapse;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .filter-row {
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .filter-row form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .field {
+        position: relative;
+        width: 100%;
+    }
+
+    .field input,
+    .field select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e1e8ed;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    .filter-row label {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+
+    .filter-row input[type="number"]:focus,
+    .filter-row input[type="date"]:focus,
+    .filter-row select:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    .filter-row input[type="submit"] {
+        padding: 12px 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 60;
+        cursor: pointer;
+    }
+
+    .filter-row input[type="submit"]:hover {
+        background-color: #2980b9;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 10px;
+    }
+
+    .filter-actions button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    #apply-button {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    #apply-button:hover {
+        background-color: #219a52;
+    }
+
+    #reset-button {
+        background-color: #e74c3c;
+        color: white;
+    }
+
+    #resetbutton:hover {
+        background-color: #c0392b;
+    }
+
+    /* Responsive design */
+    @media (max-width: 480px) {
+        .filter-container {
+            margin: 10px;
+            padding: 15px;
+        }
+
+        .filter-actions {
+            flex-direction: column;
+        }
+
+        .filter-actions button {
+            width: 100%;
+        }
+    }
+
+    /* Style for select dropdown */
+    .filter-row select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        padding-right: 40px;
+    }
+
+    /* Custom multiselect styles */
+    .custom-multiselect {
+        position: relative;
+        width: 100%;
+    }
+
+    .selected-items {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e1e8ed;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        padding-right: 40px;
+        box-sizing: border-box;
+    }
+
+    .dropdown-options {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid #e1e8ed;
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 8px 0;
+        /* Thêm padding top/bottom */
+    }
+
+    .dropdown-options.show {
+        display: block;
+    }
+
+
+
+    .option-item {
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        /* Cột checkbox 20px, còn lại cho text */
+        align-items: center;
+        gap: 12px;
+        /* Khoảng cách giữa checkbox và text */
+        padding: 8px 16px;
+        /* Điều chỉnh padding */
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        margin: 0;
+    }
+
+    .option-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .option-item:last-child {
+        border-bottom: none;
+    }
+
+    .option-item input {
+        margin: 0;
+        width: 16px;
+        height: 16px;
+        justify-self: center;
+        /* Căn giữa trong grid cell */
+    }
+
+    /* Đảm bảo label chiếm toàn bộ chiều rộng còn lại */
+    .option-item {
+        width: 100%;
+    }
+</style>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const sortSelect = document.getElementById('sort-display');
+        const selectedItemsDiv = document.getElementById('selected-sort-items');
+        const dropdownOptions = document.getElementById('sort-options');
+        const table = document.getElementById('sensor-table');
+        const checkboxes = dropdownOptions.querySelectorAll('input[type="checkbox"]');
+        const resetButton = document.getElementById('reset-button');
+        const form = document.querySelector('form');
+
+        // Toggle dropdown
+        selectedItemsDiv.addEventListener('click', function () {
+            dropdownOptions.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.custom-multiselect')) {
+                dropdownOptions.classList.remove('show');
+            }
+        });
+
+        // Handle checkbox changes
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                updateSelectedDisplay();
+                updateHiddenSelect();
+                sortTable();
+            });
+        });
+
+        // Reset button handler
+        resetButton.addEventListener('click', function () {
+            // Reset all form inputs
+            form.reset();
+
+            // Uncheck all sort checkboxes
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            // Reset sort display
+            selectedItemsDiv.textContent = 'Select sort options';
+
+            // Reset hidden select
+            Array.from(sortSelect.options).forEach(option => {
+                option.selected = false;
+            });
+
+            // Reset table to original order (reload or re-sort based on original data)
+            resetTable();
+        });
+
+        function updateSelectedDisplay() {
+            const selected = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.parentElement.textContent.trim());
+
+            if (selected.length === 0) {
+                selectedItemsDiv.textContent = 'Select sort options';
+            } else {
+                selectedItemsDiv.textContent = selected.join(', ');
+            }
+        }
+
+        function updateHiddenSelect() {
+            // Clear existing selections
+            Array.from(sortSelect.options).forEach(option => {
+                option.selected = false;
+            });
+
+            // Set new selections
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const option = Array.from(sortSelect.options).find(opt => opt.value === checkbox.value);
+                    if (option) option.selected = true;
+                }
+            });
+        }
+
+        function sortTable() {
+            const selectedOptions = Array.from(checkboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            if (selectedOptions.length === 0) {
+                resetTable();
+                return;
+            }
+
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            rows.sort((a, b) => {
+                const aCells = a.querySelectorAll('td');
+                const bCells = b.querySelectorAll('td');
+
+                for (let sortBy of selectedOptions) {
+                    let aValue, bValue;
+                    let comparison = 0;
+
+                    switch (sortBy) {
+                        case 'date':
+                            aValue = aCells[1].textContent;
+                            bValue = bCells[1].textContent;
+                            comparison = aValue.localeCompare(bValue);
+                            break;
+
+                        case 'time':
+                            aValue = aCells[2].textContent;
+                            bValue = bCells[2].textContent;
+                            comparison = aValue.localeCompare(bValue);
+                            break;
+
+                        case 'light':
+                            aValue = parseFloat(aCells[3].textContent) || 0;
+                            bValue = parseFloat(bCells[3].textContent) || 0;
+                            comparison = aValue - bValue;
+                            break;
+                    }
+
+                    if (comparison !== 0) {
+                        return comparison;
+                    }
+                }
+
+                return 0;
+            });
+
+            // Remove existing rows
+            rows.forEach(row => tbody.removeChild(row));
+
+            // Add sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function resetTable() {
+            // Store original rows order on first load
+            if (!window.originalTableRows) {
+                const tbody = table.querySelector('tbody');
+                window.originalTableRows = Array.from(tbody.querySelectorAll('tr'));
+            }
+
+            const tbody = table.querySelector('tbody');
+            const currentRows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Remove current rows
+            currentRows.forEach(row => tbody.removeChild(row));
+
+            // Add back original rows in original order
+            window.originalTableRows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Initialize original table rows on first load
+        const tbody = table.querySelector('tbody');
+        window.originalTableRows = Array.from(tbody.querySelectorAll('tr'));
+    });
+</script>
